@@ -1,0 +1,144 @@
+Phase 2, Step 3: Windows Client Machine & Domain Join
+We'll install a Windows 10 or Windows 11 VM and then join it to your homelab.local Active Directory domain. This also gives you a full desktop environment within your lab to easily access web interfaces (like pfSense's) and manage other servers.
+
+A. Download Windows 10/11 Evaluation ISO
+You can get free evaluation versions directly from Microsoft.
+
+Go to the Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
+Search for or navigate to "Windows 10 Enterprise" or "Windows 11 Enterprise". Choose the latest stable version.
+Select the "ISO" download option (you may need to fill out a short form).
+Choose your desired language and start the download. This will be another large file.
+B. Create a New Virtual Machine for the Windows Client
+Open VirtualBox and click "New".
+
+Name and Operating System:
+
+Name: Win10_Client (or Win11_Client if you download that)
+Folder: Keep default or choose a location with plenty of space.
+ISO Image: Select the Windows 10/11 ISO you just downloaded.
+Type: Microsoft Windows
+Version: Windows 10 (64-bit) or Windows 11 (64-bit).
+Skip Unattended Installation: Make sure this is checked.
+Click "Next".
+Hardware (RAM and CPU):
+
+Base Memory (RAM): Windows 10/11 needs sufficient RAM. Allocate at least 4096 MB (4GB). 6GB or 8GB (6144 MB or 8192 MB) is highly recommended if your host has 32GB+ RAM for a smoother experience.
+Processors: Allocate 2 CPUs.
+Click "Next".
+Virtual Hard Disk:
+
+Disk Size: Allocate at least 60 GB. Windows operating systems consume a fair amount of space.
+Keep it Dynamically allocated.
+Click "Next".
+Summary: Review settings and click "Finish".
+
+C. Configure Network Adapter for the Windows Client
+This VM must be on your internal network, behind pfSense, and able to communicate with your AD Domain Controller.
+
+Select Win10_Client VM: In the VirtualBox Manager, select your Win10_Client VM (do not start it yet).
+Click "Settings" -> "Network".
+Adapter 1:
+Ensure "Enable Network Adapter" is checked.
+Attached to: Change this to Internal Network.
+Name: Select the exact same name you used for pfSense's LAN and your AD Domain Controller's network: Homelab_Internal.
+Advanced: Set Promiscuous Mode to Allow All.
+Click "OK" to save network settings.
+D. Install Windows 10/11
+Start Win10_Client VM: Select the VM and click "Start".
+Installation Process:
+Follow the on-screen prompts for Windows installation.
+Language, Time, Currency, Keyboard: Select your preferences. Click "Next".
+Click "Install now".
+Product Key: Click "I don't have a product key". The evaluation version will still install.
+Operating System Edition: Choose "Windows 10/11 Enterprise Evaluation".
+Click "Next".
+Accept License Terms: Check the box and click "Next".
+Installation Type: Select "Custom: Install Windows only (advanced)".
+Where do you want to install Windows?: Select the virtual hard disk you created. Click "Next".
+Installation Progress: Windows will now install. This will take some time.
+Initial Setup (Out-of-Box Experience - OOBE):
+Region, Keyboard Layout: Select your preferences.
+Network Connection: If it asks, select "I don't have internet". If it tries to force an online account, look for an option like "Continue with limited setup" or "Set up for personal use" and then "Offline account." (Windows 11 especially tries to push online accounts, so you might need to be persistent here to create a local account first).
+Account Name: Create a local user account (e.g., user).
+Password: Create a password for this local user.
+Privacy settings: Adjust as you see fit for your lab (you can turn off most for privacy).
+Let it finish setting up the desktop.
+E. Install Guest Additions
+This is crucial for a smooth experience (better resolution, mouse integration, copy-paste).
+
+Once logged into the Windows 10/11 VM desktop, go to the VirtualBox menu bar (at the top of your host machine's screen) -> Devices -> Insert Guest Additions CD Image....
+In the Windows VM, open File Explorer, navigate to "This PC", and double-click the CD drive (it will say "VirtualBox Guest Additions").
+Follow the installation wizard. You will likely need to restart the VM after installation.
+F. Configure DNS on the Windows Client
+Your client machine must use your AD Domain Controller for DNS to find the domain.
+
+On your Win10_Client VM:
+
+Right-click the Start button -> Settings -> Network & Internet.
+Click on Ethernet.
+Click on the adapter name (e.g., "Network 1").
+Scroll down and click "Edit" next to "IP assignment".
+Change the dropdown to "Manual".
+Turn on "IPv4".
+IP address: Leave this on DHCP (it will get an IP from pfSense), but manually set the DNS.
+Preferred DNS: Enter the static IP address of your AD_Domain_Controller VM (e.g., 192.168.1.10).
+Alternate DNS: You can leave this blank or, for redundancy, you could point it to pfSense's IP (192.168.1.1) if pfSense is configured to forward DNS requests to your AD DNS. For simplicity, just the AD DC's IP is fine for now.
+Click "Save".
+Verify Network Connectivity:
+
+Open Command Prompt (search for cmd).
+Ping your AD Domain Controller by IP:
+DOS
+
+ping 192.168.1.10
+You should get a reply.
+Ping your AD Domain Controller by hostname and domain:
+DOS
+
+ping AD_Domain_Controller.homelab.local
+This must resolve to 192.168.1.10 and ping successfully. If it doesn't, your DNS is not set up correctly.
+Ping an external website:
+DOS
+
+ping google.com
+This should also work, showing internet access via pfSense.
+G. Join the Windows Client to the Active Directory Domain
+Now, the exciting part: making your client machine a member of your homelab.local domain.
+
+On your Win10_Client VM:
+Right-click the Start button -> System.
+Scroll down and click "Advanced system settings".
+In the "System Properties" window, go to the "Computer Name" tab.
+Click "Change...".
+In the "Computer Name/Domain Changes" window:
+Computer Name: Change the computer name to something meaningful for your domain (e.g., WIN10-CLIENT1). This will be its hostname in the domain.
+Select the "Domain" radio button.
+In the text box, type your domain name: homelab.local
+Click "OK".
+A "Windows Security" dialog box will pop up.
+User name: Type HOMELAB\Administrator (or your domain's NetBIOS name followed by \Administrator).
+Password: Enter the password for your domain Administrator account (the one you set when promoting the AD VM).
+Click "OK".
+You should see a "Welcome to the homelab.local domain" message. Click "OK".
+You'll be prompted to restart your computer. Click "OK", then "Close", and finally "Restart Now".
+H. Verify Domain Join & Log In with a Domain User
+After the client VM restarts:
+
+Log In to the Domain:
+
+At the login screen, you'll see your local user account.
+To log into the domain, click "Other user" (or look for "Sign-in options" if it's Windows 11).
+User name: You can use two formats:
+HOMELAB\Administrator (or HOMELAB\your_domain_user once you create one)
+Administrator@homelab.local (or your_domain_user@homelab.local)
+Password: Enter the password for that domain user (e.g., the Administrator password).
+You'll be logged into the domain-joined workstation!
+Verify on your AD_Domain_Controller VM:
+
+Open Server Manager -> Tools -> Active Directory Users and Computers.
+Expand your domain (homelab.local).
+Click on the "Computers" container.
+You should now see your WIN10-CLIENT1 (or whatever you named it) listed there. This confirms it's successfully joined the domain.
+You now have a realistic Windows client workstation, properly joined to your Active Directory domain, all behind your pfSense firewall! This is a powerful setup for generating logs and practicing various security scenarios.
+
+Next up, we'll start thinking about generating different types of log data and possibly setting up those email/SQL/web servers mentioned in the advice.
