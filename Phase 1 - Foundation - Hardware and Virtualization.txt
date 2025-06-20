@@ -1,1 +1,16 @@
-test
+Phase 1: Foundation - Hardware and Virtualization
+
+Choose Your Hardware:
+
+Minimum: A desktop or laptop with at least 16GB RAM (32GB or more is highly recommended), a decent multi-core processor (Intel i5/i7 or AMD Ryzen 5/7 equivalent or better), and a fast SSD (500GB+). You'll be running multiple virtual machines (VMs), so RAM and SSD speed are crucial.
+Ideal: A dedicated mini-PC (like an Intel NUC or similar) or an old server (e.g., a retired enterprise server from eBay) will give you more horsepower and dedicated resources. Look for something with plenty of RAM slots and a decent CPU.
+Networking: While not strictly necessary for the initial setup, consider having a managed switch if you want to practice more advanced network segmentation (VLANs) later.
+Select Your Virtualization Software (Hypervisor):
+
+Free & Easy:
+Oracle VirtualBox: User-friendly, free, and good for beginners. - I choosed Oracle Virtualbox as first one.
+VMware Workstation Player (Free Version): Also very good, slightly more advanced features than VirtualBox.
+More Advanced (Bare-Metal):
+Proxmox VE: A powerful open-source bare-metal hypervisor (Type 1) that's excellent for homelabs. It allows you to run multiple VMs and containers, and manage them through a web interface. This is what many homelab enthusiasts use.
+VMware ESXi (Free Version): Another Type 1 hypervisor, more enterprise-focused, but a free version is available for learning.
+Recommendation for a beginner: Start with VirtualBox or VMware Workstation Player on your existing PC. Once you're comfortable, you can consider a dedicated machine with Proxmox.
