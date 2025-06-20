@@ -1,0 +1,215 @@
+Phase 2, Step 2: Active Directory (AD) Domain Controller
+For this, you'll need a Windows Server operating system. We'll install it as a VM and then promote it to a Domain Controller.
+
+A. Download Windows Server Evaluation ISO
+Microsoft offers free evaluation versions of Windows Server, which are perfect for homelab use. These usually last for 180 days, which is more than enough time for learning.
+
+Go to the Microsoft Evaluation Center: https://www.microsoft.com/en-us/evalcenter/
+Search for Windows Server or navigate to the "Servers" section.
+Look for a recent version, such as Windows Server 2022.
+Choose the "ISO" download option (you might need to fill out a short form).
+Select your desired language and begin the download. This file is also quite large, so it will take some time.
+B. Create a New Virtual Machine for Windows Server
+This VM will be configured to connect to your Homelab_Internal network, just like your Ubuntu server.
+
+Open VirtualBox and click "New".
+
+Name and Operating System:
+
+Name: AD_Domain_Controller
+Folder: Keep the default or choose a location with ample space.
+ISO Image: Select the Windows Server 2022 ISO you just downloaded.
+Type: Microsoft Windows
+Version: Windows Server 2022 (64-bit)
+Skip Unattended Installation: Make sure this is checked.
+Click "Next".
+Hardware (RAM and CPU):
+
+Base Memory (RAM): Windows Server needs more RAM than pfSense or basic Ubuntu. Allocate at least 4096 MB (4GB). If your host has 32GB+ RAM, 6GB or 8GB would be even better for smoother operation.
+Processors: Allocate 2 CPUs.
+Click "Next".
+Virtual Hard Disk:
+
+Disk Size: Allocate at least 60 GB. Windows Server takes up more space than Linux.
+Keep it Dynamically allocated.
+Click "Next".
+Summary: Review settings and click "Finish".
+
+C. Configure Network Adapter for Windows Server
+This is crucial: your Windows Server needs to be on your internal network, behind pfSense.
+
+Select AD_Domain_Controller VM: In the VirtualBox Manager, select your AD_Domain_Controller VM (do not start it yet).
+Click "Settings" -> "Network".
+Adapter 1:
+Ensure "Enable Network Adapter" is checked.
+Attached to: Change this to Internal Network.
+Name: Select the exact same name you used for pfSense's LAN and your Ubuntu VM's network: Homelab_Internal.
+Advanced: Set Promiscuous Mode to Allow All.
+Click "OK" to save network settings.
+D. Install Windows Server 2022
+Start AD_Domain_Controller VM: Select the VM and click "Start".
+Installation Process:
+Follow the on-screen prompts for Windows Server installation.
+Language, Time, Currency, Keyboard: Select your preferences. Click "Next".
+Click "Install now".
+Operating System Edition: Choose "Windows Server 2022 Standard Evaluation (Desktop Experience)". Do not choose "Server Core" unless you're comfortable with command-line only. "Desktop Experience" gives you a GUI.
+Click "Next".
+Accept License Terms: Check the box and click "Next".
+Installation Type: Select "Custom: Install Windows only (advanced)".
+Where do you want to install Windows?: Select the virtual hard disk you created (there should only be one listed). Click "Next".
+Installation Progress: Windows will now install. This will take some time (15-30 minutes, possibly longer depending on your host's performance).
+Administrator Password: After installation, you'll be prompted to set a password for the Administrator account. Choose a strong password and remember it! This is critical for your lab.
+Click "Finish". The server will restart.
+E. Initial Windows Server Configuration & Network Test
+After reboot, you'll be at the Windows Server login screen.
+
+Log In: Press Ctrl + Alt + Delete (in VirtualBox, use Input -> Keyboard -> Insert Ctrl+Alt+Del) and log in with the Administrator account and the password you set.
+Install Guest Additions (Highly Recommended!):
+Once logged in, go to the VirtualBox menu bar (at the top of your host machine's screen) -> Devices -> Insert Guest Additions CD Image....
+In the Windows Server VM, open File Explorer, navigate to "This PC", and double-click the CD drive (it will say "VirtualBox Guest Additions").
+Follow the installation wizard for Guest Additions. This will install drivers that improve mouse integration, screen resolution, and overall VM performance. You'll likely need to restart the VM after installation.
+Check Network Connectivity:
+Open Server Manager.
+Click on "Local Server" on the left.
+You should see your Ethernet connection. It should have automatically received an IP address from your pfSense DHCP server (e.g., 192.168.1.x).
+Test Internet Access: Open Internet Explorer (or Edge) on the Windows Server and try to browse to google.com. This confirms pfSense is routing traffic correctly.
+Test Ping to pfSense: Open Command Prompt (search for cmd) and type:
+DOS
+
+ping 192.168.1.1
+You should get a reply.
+F. Promote to Domain Controller (Install Active Directory Domain Services)
+Now that the server is installed and connected to the network, we'll make it your Active Directory Domain Controller.
+
+Open Server Manager (it usually opens automatically after login).
+
+Click "Add Roles and Features".
+
+Click "Next" through "Before You Begin" and "Installation Type" (keep "Role-based or feature-based installation" selected).
+
+Server Selection: Ensure your AD_Domain_Controller is selected. Click "Next".
+
+Server Roles:
+
+Check the box next to "Active Directory Domain Services".
+A pop-up will appear asking to add required features. Click "Add Features".
+Click "Next".
+Features: Click "Next" (no additional features are needed for basic AD).
+
+AD DS: Click "Next".
+
+Confirmation: Review your selections. Click "Install".
+
+Installation Progress: This will install the AD DS role. Do not close the window.
+
+Promote this server to a domain controller:
+
+Once the installation is complete, a yellow exclamation mark will appear next to the "Manage" flag in Server Manager. Click on it.
+Click the link "Promote this server to a domain controller".
+Deployment Configuration Wizard:
+
+Deployment Operation: Select "Add a new forest".
+Root domain name: Choose a suitable domain name for your lab. Do NOT use a real-world domain name like google.com or microsoft.com. Use a fictional domain like:
+yourlastname.local (e.g., smithlab.local)
+homelab.local
+mycorp.xyz (avoid .local in production, but fine for a lab)
+Example: Let's use homelab.local for this guide.
+Click "Next".
+Domain Controller Options:
+
+Functional level: Keep the default (usually Windows Server 2016 or 2022).
+Ensure "Domain Name System (DNS) server" is checked (this is crucial!).
+Ensure "Global Catalog (GC)" is checked.
+Directory Services Restore Mode (DSRM) password: Set a strong password for DSRM. This is used for disaster recovery of AD. Write it down!
+Click "Next".
+DNS Options:
+
+You might get a warning about creating a delegation for this DNS server. This is normal in a lab setting, so just click "Next".
+Additional Options:
+
+NetBIOS domain name: It will auto-populate (e.g., HOMELAB). Click "Next".
+Paths: Keep the default paths for AD databases, log files, and SYSVOL. Click "Next".
+
+Review Options: Review your choices. Click "Next".
+
+Prerequisites Check: The wizard will perform checks. If there are any warnings (not errors), they are usually fine for a lab. Click "Install".
+
+Installation and Reboot: The server will configure AD DS, and then automatically restart. This will take some time.
+
+G. Verify Active Directory Installation
+After the server reboots:
+
+Log In: Log in using the Administrator account. You'll notice the login screen now says "Sign in to HOMELAB\Administrator" (or whatever your NetBIOS name was), indicating you're logging into the domain.
+Verify AD Roles:
+Open Server Manager.
+On the left pane, you should now see "AD DS" and "DNS" roles listed and active.
+Open AD Users and Computers:
+Go to Server Manager -> Tools -> Active Directory Users and Computers.
+You should see your domain (homelab.local) listed. Expand it to see Computers, Users, etc. This is your central management console for users and devices in your lab.
+Open DNS Manager:
+Go to Server Manager -> Tools -> DNS.
+You should see your server listed, and your domain (homelab.local) should have forward lookup zones. This confirms your DNS server is running and integrated with AD.
+H. Configure Other VMs to Use Your New DNS Server
+Now that you have a functioning DNS server on your AD Domain Controller, your other lab VMs need to use it to resolve names within your domain.
+
+Shut down your Ubuntu_Server_Base VM.
+
+Shut down your pfSense_Firewall VM.
+
+Configure pfSense to use your internal DNS for DHCP:
+
+Start pfSense_Firewall VM.
+Log in to its console if you have to, or wait for it to boot up.
+Access the pfSense Web GUI: From your AD_Domain_Controller VM, open Edge/Internet Explorer and navigate to http://192.168.1.1 (your pfSense LAN IP).
+Log in with admin and pfsense.
+Go to Services -> DHCP Server -> LAN.
+Scroll down to "DNS Servers".
+In the first "DNS Server" box, enter the static IP address of your AD_Domain_Controller VM (e.g., 192.168.1.10 - we'll set a static IP for it next). For now, you can enter 192.168.1.x where 'x' is the IP your AD server currently has, or leave it blank as DHCP will assign it one initially.
+Better approach: We should assign your AD server a static IP address within the pfSense DHCP range, but outside the dynamic pool.
+I. Assign a Static IP to Your AD Domain Controller
+It's best practice for Domain Controllers to have static IP addresses.
+
+On your AD_Domain_Controller VM:
+
+Open Server Manager -> Local Server.
+Click on the "Ethernet" link (usually says "IPv4 address assigned by DHCP").
+Right-click your network adapter (e.g., "Ethernet") and select "Properties".
+Select "Internet Protocol Version 4 (TCP/IPv4)" and click "Properties".
+Select "Use the following IP address:"
+IP address: Choose an IP in your 192.168.1.x range that is outside of pfSense's default DHCP range (which usually starts higher, e.g., 192.168.1.100). A good choice would be 192.168.1.10.
+Subnet mask: 255.255.255.0
+Default gateway: 192.168.1.1 (your pfSense LAN IP)
+Preferred DNS server: 192.168.1.10 (the IP address of this Domain Controller itself, as it is now your DNS server for the domain)
+Alternate DNS server: You can leave this blank for now, or point it to your pfSense's IP (192.168.1.1) if pfSense is configured to forward requests to the AD DNS.
+Click "OK" twice to save.
+Reboot the AD_Domain_Controller VM to ensure the new static IP takes effect.
+Back on pfSense Web GUI (from AD_Domain_Controller VM, using its new static IP):
+
+Go to Services -> DHCP Server -> LAN.
+Under "DNS Servers", now enter your AD server's static IP: 192.168.1.10.
+Click "Save" at the bottom.
+Start your Ubuntu_Server_Base VM.
+
+Once it boots, log in.
+Force a DHCP lease renewal:
+Bash
+
+sudo netplan apply
+Verify its DNS server:
+Bash
+
+systemd-resolve --status | grep 'DNS Servers'
+It should now show 192.168.1.10 as its DNS server.
+Test pinging your domain controller by hostname:
+Bash
+
+ping AD_Domain_Controller.homelab.local
+This should resolve and ping successfully, showing your internal DNS is working!
+You've now got a fully functional Active Directory Domain Controller managing your homelab.local domain! This is a massive step towards building a realistic environment for SOC analyst practice.
+
+Next, you'll want to add some client machines (like a Windows 10/11 VM) to your domain, create users, and start generating more logs for your SIEM.
+
+
+
+
+

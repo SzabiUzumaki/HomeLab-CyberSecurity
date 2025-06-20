@@ -1,0 +1,190 @@
+Phase 2, Step 1: Virtual Firewall (pfSense)
+We'll set up pfSense as a VM in VirtualBox. This VM will need multiple network adapters to act as a router and firewall between your host machine's network (simulating the internet) and your internal homelab network.
+
+A. Download pfSense ISO
+Go to the official pfSense download page: https://www.pfsense.org/download/
+Choose the following options:
+Architecture: AMD64 (64-bit)
+Installer: DVD Image (ISO)
+Mirror: Choose a mirror close to your location.
+Click the "Download" button to get the .iso file.
+B. Create a New Virtual Machine for pfSense in VirtualBox
+This process is similar to creating your Ubuntu VM, but with critical differences in network configuration.
+
+Open VirtualBox: Launch the VirtualBox application.
+
+Click "New": Start the "Create Virtual Machine" wizard.
+
+Name and Operating System:
+
+Name: pfSense_Firewall
+Folder: Keep the default or choose a preferred location.
+ISO Image: Select the pfSense ISO you just downloaded.
+Type: BSD (pfSense is based on FreeBSD)
+Version: FreeBSD (64-bit)
+Skip Unattended Installation: Make sure this is checked.
+Click "Next".
+Hardware (RAM and CPU):
+
+Base Memory (RAM): 1024 MB (1GB) is usually sufficient for pfSense.
+Processors: 1 CPU is fine.
+Click "Next".
+Virtual Hard Disk:
+
+Disk Size: 20 GB is more than enough for pfSense. It's a very light OS.
+Keep it Dynamically allocated.
+Click "Next".
+Summary:
+
+Review your settings. Click "Finish".
+C. Configure Network Adapters for pfSense (CRUCIAL STEP!)
+This is where the magic happens for your firewall. We need to give pfSense at least two network interfaces: one for the "WAN" (Wide Area Network, simulating your internet connection) and one for the "LAN" (Local Area Network, your internal homelab network).
+
+Select pfSense_Firewall VM: In the VirtualBox Manager, select your pfSense_Firewall VM (but do not start it yet).
+
+Click "Settings": Click the "Settings" button (the orange gear icon).
+
+Go to "Network": In the settings window, click on "Network" in the left-hand menu.
+
+Adapter 1 (WAN - simulating internet):
+
+Ensure "Enable Network Adapter" is checked.
+Attached to: Change this to NAT.
+Why NAT? This allows your pfSense VM to get an IP address from your host machine's network (your actual home network) and access the internet, simulating the "WAN" side.
+Advanced: Expand the "Advanced" section.
+Promiscuous Mode: Select Allow All. This is often required for firewalls and network devices to see all traffic.
+MAC Address: You can regenerate if you like, but usually not necessary.
+Click "OK" for Adapter 1 settings.
+Adapter 2 (LAN - your internal lab network):
+
+Click on the "Adapter 2" tab.
+Check "Enable Network Adapter".
+Attached to: Change this to Internal Network.
+Why Internal Network? This is a VirtualBox-specific network mode where VMs connected to the same internal network can communicate with each other, but not directly with the host machine or the internet. This is perfect for isolating your lab network.
+Name: Give the internal network a clear name, e.g., Homelab_Internal. Type this exact name.
+Advanced: Expand the "Advanced" section.
+Promiscuous Mode: Select Allow All.
+Click "OK" for Adapter 2 settings.
+Optional: Adapter 3 (DMZ - for later):
+
+If you want to prepare for the DMZ now, you can add a third adapter.
+Click on the "Adapter 3" tab.
+Check "Enable Network Adapter".
+Attached to: Change this to Internal Network.
+Name: Give it a different name, e.g., Homelab_DMZ.
+Advanced: Expand the "Advanced" section.
+Promiscuous Mode: Select Allow All.
+Click "OK" to save all network settings.
+D. Install pfSense
+Start pfSense_Firewall VM: In the VirtualBox Manager, select your pfSense_Firewall VM and click "Start".
+Boot pfSense:
+You'll see a boot menu. Just let it automatically select the default option (usually the first one).
+It will load the pfSense installer.
+Accept License: Press Accept when prompted.
+Install: Select Install and press Enter.
+Keymap: Select your keyboard layout.
+Partitioning:
+Choose Auto (UFS). This is the easiest option for a VM.
+Confirm the installation.
+Installation Progress: Let the installation run. This is usually quite fast.
+Manual Configuration (Optional, but Recommended): It will ask if you want to perform any manual configuration. Say No for now (you'll do this after reboot).
+Reboot: Eject the CD image (it might do this automatically). Press Reboot to restart the VM.
+
+
+E. Initial pfSense Configuration after Reboot
+After pfSense reboots, you'll see a console menu in the VM window. This is where you assign your network interfaces.
+
+Assign Interfaces:
+
+You'll be asked if you want to set up VLANs. Type n (for no) and press Enter.
+pfSense will list the detected network interfaces (e.g., em0, em1, em2).
+It will then ask for the WAN interface name. This is the one connected to NAT. Look back at your VirtualBox settings for Adapter 1 and check its MAC address in the Advanced section (it will be listed as 08:00:27:...). Match this MAC address to one of the listed interfaces in the pfSense console (e.g., em0).
+Example: If em0 matches the MAC of your NAT adapter, type em0 for the WAN interface.
+It will then ask for the LAN interface name. This is the one connected to your Homelab_Internal network. Match its MAC address (e.g., em1).
+Example: If em1 matches the MAC of your Homelab_Internal adapter, type em1 for the LAN interface.
+If you set up a third DMZ adapter, it will ask for an OPT1 interface. Match it (e.g., em2). If not, just press Enter.
+Confirm your assignments by typing y and pressing Enter.
+Observe IPs: Once the interfaces are assigned, pfSense will display the WAN and LAN IP addresses.
+
+The WAN IP will likely be in the 10.0.2.x range (or similar, depending on VirtualBox's NAT network).
+The LAN IP will default to 192.168.1.1. This is your firewall's IP address for your internal network.
+Access Web Interface:
+
+From your host machine, you cannot directly access the pfSense web interface yet, because the LAN interface is on an Internal Network in VirtualBox.
+You will access it from another VM within your homelab network once you connect it to the pfSense LAN.
+F. Connect Your Ubuntu Server VM to the pfSense LAN
+Now, let's connect your existing Ubuntu Server VM to the internal network managed by pfSense.
+
+Shut down your Ubuntu_Server_Base VM.
+Open Ubuntu_Server_Base VM Settings: In VirtualBox, select Ubuntu_Server_Base and go to "Settings" -> "Network".
+Configure Adapter 1:
+Ensure "Enable Network Adapter" is checked.
+Attached to: Change this from NAT (or whatever it was) to Internal Network.
+Name: Select the exact same internal network name you used for pfSense's LAN, which was Homelab_Internal. This is critical for them to communicate.
+Advanced: Set Promiscuous Mode to Allow All.
+Click "OK" to save the settings.
+Start your Ubuntu_Server_Base VM.
+G. Configure Ubuntu to Get an IP from pfSense
+By default, Ubuntu Server might still try to use DHCP from your previous setup or might have a static IP. We want it to get an IP address from pfSense's DHCP server (which is enabled by default on the LAN interface of pfSense).
+
+Log in to your Ubuntu Server VM.
+
+Check Network Configuration:
+
+Bash
+
+ip a
+Look at the IP address for your primary network interface (usually enp0s3 or eth0). It might still have an old IP.
+
+Renew DHCP Lease (if needed):
+If your Ubuntu server didn't get an IP from pfSense immediately, you might need to force a DHCP renewal. Ubuntu Server uses netplan.
+
+Edit Netplan config (if needed - depends on your Ubuntu version):
+Bash
+
+sudo nano /etc/netplan/*.yaml
+Look for a line that says dhcp4: true under your network interface. If it's not there, add it or ensure the configuration is set for DHCP. It usually is by default for new installs. Example minimal netplan config for DHCP:
+YAML
+
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3: # Your interface name might be different, check with `ip a`
+      dhcp4: true
+Save and exit (Ctrl+O, Enter, Ctrl+X).
+Apply Netplan changes:
+Bash
+
+sudo netplan apply
+Verify New IP:
+
+Bash
+
+ip a
+You should now see an IP address in the 192.168.1.x range (e.g., 192.168.1.100), which means it's successfully connected to pfSense's LAN and got an IP from its DHCP server!
+
+Test Connectivity:
+
+Ping pfSense:
+Bash
+
+ping 192.168.1.1
+You should get a reply.
+Ping Google (or any external site):
+Bash
+
+ping google.com
+This should also work, showing that your Ubuntu VM can access the internet through pfSense!
+Access pfSense Web Interface from Ubuntu:
+
+From your Ubuntu Server VM, install a command-line web browser (if you don't want to install a full desktop environment):
+Bash
+
+sudo apt install links2 -y
+Then, open the pfSense web interface:
+Bash
+
+links2 http://192.168.1.1
+You'll see a text-based representation of the pfSense login page. The default username is admin and the default password is pfsense. Note: While you can access it this way, it's generally easier to connect a temporary Windows client VM to your internal network for full browser access to the pfSense GUI. We'll do this in the next step.
+You've now got your firewall set up and your first server connected to its internal network! This is a huge milestone for your homelab. Next, we'll probably add a Windows client VM to make managing the lab and accessing web GUIs easier.
