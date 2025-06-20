@@ -14,3 +14,76 @@ More Advanced (Bare-Metal):
 Proxmox VE: A powerful open-source bare-metal hypervisor (Type 1) that's excellent for homelabs. It allows you to run multiple VMs and containers, and manage them through a web interface. This is what many homelab enthusiasts use.
 VMware ESXi (Free Version): Another Type 1 hypervisor, more enterprise-focused, but a free version is available for learning.
 Recommendation for a beginner: Start with VirtualBox or VMware Workstation Player on your existing PC. Once you're comfortable, you can consider a dedicated machine with Proxmox.
+
+Step 1: Download the Operating System ISO File
+Before you can create a VM, you need the installation media for the operating system you want to install.
+
+Download Ubuntu Server ISO:
+Go to the official Ubuntu Server download page: https://ubuntu.com/download/server
+Look for the latest LTS (Long Term Support) version (e.g., Ubuntu Server 24.04 LTS). This is recommended for stability.
+Click the "Download" button to get the .iso file. This file can be quite large (several GBs), so it might take a while to download depending on your internet speed.
+Step 2: Create a New Virtual Machine in VirtualBox
+Open VirtualBox: Launch the VirtualBox application.
+
+Click "New": In the VirtualBox Manager window, click the "New" button (usually a blue gear icon with a plus sign, or found in the "Machine" menu). This will open the "Create Virtual Machine" wizard.
+
+Name and Operating System:
+
+Name: Give your VM a descriptive name, e.g., Ubuntu_Server_Base, Splunk_Host, or AD_Server (you'll make a Windows VM later, but for now, let's think about a generic Linux host).
+Folder: This is where the VM's files (virtual hard disk, configuration) will be stored on your actual computer. You can keep the default or choose a location with plenty of space.
+ISO Image: Click the dropdown arrow and then "Other..." Navigate to where you saved the downloaded Ubuntu Server ISO file and select it.
+Type: VirtualBox should automatically detect "Linux".
+Version: It should automatically detect "Ubuntu (64-bit)". If not, select it manually.
+Skip Unattended Installation: Make sure the "Skip Unattended Installation" checkbox is checked. You want to perform a manual installation.
+Click "Next".
+Hardware (RAM and CPU):
+
+Base Memory (RAM): This is how much RAM you're allocating to the VM.
+For a basic Ubuntu Server, 2048 MB (2GB) is usually sufficient.
+Important: Do not allocate more than half of your host machine's RAM to a single VM, especially if you plan to run multiple VMs simultaneously. For your first VM, if your host has 16GB, allocating 4GB (4096 MB) gives it more breathing room.
+Processors: This is how many CPU cores you're allocating.
+1 CPU is usually enough for a basic server.
+You can allocate 2 CPUs for slightly better performance. I used 2 CPUs.
+Important: Do not allocate more cores than your physical CPU has.
+Click "Next".
+Virtual Hard Disk:
+
+Disk Size: This is the size of the virtual hard drive for your VM.
+For Ubuntu Server, 25 GB is a good starting point. You can go up to 30-40 GB to be safe if you plan to install more software later.
+Important: By default, VirtualBox uses a "Dynamically allocated" disk. This means the disk file on your actual computer will only grow as you fill up space inside the VM, up to the maximum size you specify. This is usually fine for homelabs.
+Click "Next".
+Summary:
+
+Review the settings you've chosen. If everything looks good, click "Finish".
+Step 3: Start and Install the Operating System
+Start the VM: In the VirtualBox Manager, select your newly created VM from the list on the left and click the "Start" button (the green arrow).
+Installation Process:
+A new window will open, which is your VM's "screen".
+It should boot from the ISO image you provided. Follow the on-screen prompts to install Ubuntu Server.
+Key steps during Ubuntu Server installation:
+Language: Choose your preferred language.
+Keyboard Layout: Select your keyboard layout.
+Network Configuration: It will try to get an IP address via DHCP. For now, just let it do its thing. You can configure static IPs later if needed.
+Disk Setup: Choose "Use an entire disk" and select the virtual disk you created (e.g., /dev/sda). This will erase the virtual disk and install Ubuntu.
+Profile Setup: Enter your name, the server's name (e.g., ubuntuhost), a username, and a password. Make sure to remember this username and password!
+SSH Installation: IMPORTANT! On the "Featured Server Snaps" screen, scroll down and select "Install OpenSSH server". This is crucial for managing your server remotely from your host machine later without needing the VirtualBox console all the time.
+Installation Progress: Let the installation complete. This might take 15-30 minutes.
+Reboot: Once the installation is finished, it will prompt you to reboot. The VM will eject the virtual ISO automatically.
+After rebooting, you should see a login prompt in the VM window.
+Step 4: Verify Installation and Basic Configuration
+Log In: Log in to your Ubuntu Server using the username and password you created during installation.
+Update System: It's good practice to update your system immediately:
+Bash
+
+sudo apt update
+sudo apt upgrade -y
+(You'll need to enter your password for sudo commands.)
+What's Next?
+Congratulations! You've successfully created your first VM. This Ubuntu Server will serve as a foundational piece of your homelab.
+
+Your next steps in Phase 1 and moving into Phase 2 will involve:
+
+Understanding VirtualBox Network Modes: Crucial for allowing your VMs to communicate with each other and your host machine. We'll likely use "Internal Network" and "NAT" for different purposes.
+Setting up the Virtual Firewall (pfSense/OpnSense): This will be your next VM.
+Creating a Windows Server VM: For your Active Directory domain.
+But for now, take a moment to get comfortable with your new Ubuntu Server VM! Try a few basic Linux commands like ls, pwd, ip a, uname -a.
