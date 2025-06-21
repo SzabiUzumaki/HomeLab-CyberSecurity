@@ -1,0 +1,73 @@
+Phase 3, Step 2: Deploy a SQL Server
+Database servers are another common target for attackers and generate distinct types of logs. We'll install a free version of SQL Server on your AD Domain Controller for simplicity, again noting that in production, you'd separate these roles.
+
+A. Install SQL Server Express
+Log in to your AD_Domain_Controller VM.
+
+Download SQL Server Express:
+
+Open Edge/Internet Explorer and go to: https://www.microsoft.com/en-us/sql-server/sql-server-downloads
+Under "Express", click "Download now". This will download a small installer.
+Run the Installer:
+
+Run the downloaded SQLEXPR_ENU.exe (or similar name).
+Choose the "Basic" installation type for simplicity.
+Accept the license terms.
+Choose the installation location (default is fine).
+It will download the installation files and then proceed with the installation. This might take a while.
+Complete Installation:
+
+Once done, you'll see a screen with connection string details. Make a note of the "SQL Server name" (e.g., YOURSERVERNAME\SQLEXPRESS). You'll need this to connect.
+You can click "Install SSMS" if you want the graphical management studio, but it's a large download and not strictly necessary for just getting logs initially. We'll manage from the command line or use simple tools for now.
+B. Basic SQL Server Configuration & Test
+Verify Service Status:
+
+Open Services (search for services.msc).
+Look for "SQL Server (SQLEXPRESS)". Ensure its status is "Running".
+Enable Remote Connections (Crucial for Client Access):
+
+On your AD_Domain_Controller VM, search for and open "SQL Server Configuration Manager".
+In the left pane, expand "SQL Server Network Configuration".
+Click on "Protocols for SQLEXPRESS".
+In the right pane, right-click "TCP/IP" and select "Properties".
+Go to the "IP Addresses" tab.
+Scroll down to the IPAll section.
+TCP Dynamic Ports: Clear this field (make it blank).
+TCP Port: Enter 1433.
+Click "OK".
+Go back to "Protocols for SQLEXPRESS", right-click "TCP/IP", and select "Enable".
+In the left pane, click on "SQL Server Services".
+Right-click "SQL Server (SQLEXPRESS)" and select "Restart".
+Configure Windows Firewall for SQL:
+
+On your AD_Domain_Controller VM, search for and open "Windows Defender Firewall with Advanced Security".
+In the left pane, click on "Inbound Rules".
+In the right pane, click "New Rule...".
+Rule Type: Port
+Protocol and Ports:
+TCP
+Specific local ports: 1433
+Action: Allow the connection
+Profile: Check Domain and Private (public is generally not needed for internal lab).
+Name: SQL Server (TCP-In)
+Click "Finish".
+Test Connectivity from Win10_Client VM:
+
+We need a tool to connect. The easiest is to use PowerShell.
+Open PowerShell on your Win10_Client VM.
+Try to connect (replace AD_Domain_Controller with its actual hostname or IP):
+PowerShell
+
+Test-NetConnection -ComputerName AD_Domain_Controller -Port 1433
+The output should show TcpTestSucceeded : True. This means the client can reach the SQL Server on port 1433.
+C. Locate SQL Server Logs
+SQL Server logs are different from Windows Event Logs or IIS logs.
+
+On your AD_Domain_Controller VM:
+Open SQL Server Configuration Manager again.
+In the left pane, click on "SQL Server Services".
+Right-click "SQL Server (SQLEXPRESS)" and select "Properties".
+Go to the "Advanced" tab.
+Look for the "Dump Directory" or "Error Log path". This is often where the main error logs are stored.
+The main SQL Server error logs are typically found in a path like: C:\Program Files\Microsoft SQL Server\MSSQL16.SQLEXPRESS\MSSQL\Log\ (the MSSQL16.SQLEXPRESS part might vary based on your version and instance name).
+The logs are named ERRORLOG, ERRORLOG.1, etc. Open one with Notepad to see database activity, errors, and authentication attempts.

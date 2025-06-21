@@ -1,0 +1,53 @@
+Phase 3, Step 1: Deploy a Web Server
+A web server is a fundamental component of most organizations and generates a huge volume of traffic and security-relevant logs. We'll set one up.
+
+You have two main options for setting up a web server in your current lab:
+
+Internet Information Services (IIS) on your Windows Server (AD_Domain_Controller): This is straightforward as you already have a Windows Server VM.
+Apache or Nginx on your Ubuntu Server (Ubuntu_Server_Base): This is also a good option if you want to diversify your OS experience.
+Let's start with IIS on your Windows Server, as it's already there and is a common enterprise web server. We'll set it up on the Domain Controller for now, which is generally bad practice in production (you wouldn't run a public-facing web server on a DC), but for a lab, it keeps things simple and still generates valuable logs. Later, we can deploy a dedicated web server in the DMZ.
+
+A. Install Internet Information Services (IIS) on AD_Domain_Controller
+Log in to your AD_Domain_Controller VM.
+Open Server Manager.
+Click "Add Roles and Features".
+Click "Next" through "Before You Begin" and "Installation Type" (keep "Role-based or feature-based installation" selected).
+Server Selection: Ensure your AD_Domain_Controller is selected. Click "Next".
+Server Roles:
+Check the box next to "Web Server (IIS)".
+A pop-up will appear asking to add required features. Click "Add Features".
+Click "Next".
+Features: Click "Next" (no additional features are strictly needed for basic IIS).
+Web Server Role (IIS): Click "Next".
+Role Services: Keep the default selected role services. For a basic web server, these are sufficient. You can add more later if you need specific functionalities (e.g., FTP Server, ASP.NET).
+Click "Next".
+Confirmation: Review your selections. Click "Install".
+Installation Progress: Let the installation complete. Click "Close" when done.
+B. Verify IIS Installation and Access from Client
+Verify Service Status:
+
+On your AD_Domain_Controller VM, open Server Manager. You should now see "IIS" listed under "Roles and Server Groups" on the left.
+Go to Tools -> Internet Information Services (IIS) Manager. This is where you'll manage your websites.
+Test from AD_Domain_Controller VM (itself):
+
+Open Edge or Internet Explorer on the AD_Domain_Controller VM.
+Type http://localhost or http://127.0.0.1 in the address bar.
+You should see the default IIS welcome page. This confirms IIS is running.
+Test from Win10_Client VM:
+
+Log in to your Win10_Client VM (using a domain user, e.g., HOMELAB\your_domain_user or Administrator@homelab.local).
+Open Edge or any web browser.
+In the address bar, type the IP address of your AD_Domain_Controller VM (e.g., http://192.168.1.10).
+You should see the default IIS welcome page. This confirms your client can reach the web server within your internal network.
+Test from your Host Machine (Optional - if network permits):
+
+You can also try to reach the IIS server from your actual computer, but you'll need to configure a firewall rule on pfSense to allow traffic from your host's network to the AD_Domain_Controller's IP on port 80.
+Caution: Be mindful of exposing your lab services directly to your host or the internet unless you understand the security implications. For now, accessing it from the client VM is sufficient.
+C. Locate IIS Logs
+IIS logs are critical for web security monitoring.
+
+On your AD_Domain_Controller VM:
+Open File Explorer.
+Navigate to: C:\inetpub\logs\LogFiles\W3SVC1\
+You will see log files with a .log extension, usually named by date (e.g., u_ex240620.log).
+Open one of these files with Notepad. You'll see entries for every web request, including IP addresses, timestamps, HTTP methods, URLs, user agents, etc. These are the logs you'll later ingest into Splunk.
