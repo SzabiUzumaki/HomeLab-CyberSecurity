@@ -1,0 +1,69 @@
+We'll create a rule to allow HTTP (port 80) access from your host machine (simulating the internet) to your DMZ_Web_Server. You can replicate this for HTTPS (port 443) later.
+
+A. Find Your pfSense WAN IP (from Host Machine)
+You'll need the IP address that VirtualBox's NAT adapter assigned to your pfSense WAN interface.
+
+On your host machine (your actual computer):
+
+Windows: Open Command Prompt or PowerShell and type ipconfig. Look for the IP address of the "VirtualBox Host-Only Network" or any VirtualBox-related adapter that has an IP in the 10.0.2.x range (or similar, depending on your VirtualBox NAT configuration). This is the IP that represents your pfSense WAN interface to your host.
+Linux/macOS: Open Terminal and type ip a or ifconfig. Look for VirtualBox interfaces.
+Example: Let's assume pfSense's WAN IP is 10.0.2.15 for this example. Yours might differ.
+
+B. Create a Port Forward (NAT) Rule in pfSense
+This rule tells pfSense to forward traffic coming into its WAN interface on specific ports to your DMZ_Web_Server.
+
+Log in to the pfSense Web GUI from your AD_Domain_Controller VM or Win10_Client VM (http://192.168.1.1).
+
+Go to Firewall -> NAT.
+
+Click on the "Port Forward" tab.
+
+Click the "Add" button (usually a green plus icon).
+
+Configure the Port Forward Rule:
+
+Interface: WAN (This means traffic coming into the WAN interface).
+Protocol: TCP
+Destination: WAN address (This means the destination of the incoming traffic is the pfSense WAN IP itself).
+Destination port range:
+From port: HTTP (80)
+To port: HTTP (80)
+Redirect target IP: Enter the IP address of your DMZ_Web_Server VM (e.g., 192.168.2.100).
+Redirect target port: HTTP (80)
+Description: Allow HTTP to DMZ Web Server
+NAT Reflection: Keep as Use System Default for now. (This helps internal clients access the service via the WAN IP, but can be complex. We'll access from host first).
+Filter rule association: IMPORTANT: Leave this as Pass (the default). This will automatically create an associated firewall rule on the WAN interface to allow this traffic.
+Click "Save".
+
+Click "Apply Changes" at the top.
+
+C. Verify the Automatically Created Firewall Rule
+The "Filter rule association: Pass" setting should have automatically created a firewall rule for you.
+
+Go to Firewall -> Rules.
+Click on the "WAN" tab.
+You should now see a new pass rule with the description Allow HTTP to DMZ Web Server. This rule explicitly permits traffic on port 80 to pass through pfSense to your DMZ_Web_Server.
+D. Test Access from Your Host Machine
+Now, let's see if you can reach your DMZ_Web_Server from your physical computer.
+
+On your host machine (your actual computer):
+Open a web browser (Chrome, Firefox, Edge, etc.).
+
+In the address bar, type the WAN IP address of your pfSense VM (e.g., http://10.0.2.15 - use the IP you found in Step A).
+
+Press Enter.
+
+Expected Result: You should now see the default Apache welcome page from your DMZ_Web_Server!
+
+If you encounter issues:
+
+Double-check all IPs and port numbers in the NAT rule.
+Ensure your DMZ_Web_Server VM is running and Apache2 is active (sudo systemctl status apache2).
+Ensure no local firewall on your DMZ_Web_Server (like ufw) is blocking port 80. If you installed Ubuntu, ufw might be active. You can allow it: sudo ufw allow 'Apache' or sudo ufw allow 80/tcp.
+E. (Optional) Repeat for HTTPS (Port 443)
+Once you've confirmed HTTP access, you can repeat Step B for HTTPS:
+
+Destination port range: HTTPS (443) to HTTPS (443)
+Redirect target port: HTTPS (443)
+Description: Allow HTTPS to DMZ Web Server
+You'll need to install and configure SSL/TLS on your Apache server for HTTPS to actually work, but setting the NAT rule now prepares for it.
