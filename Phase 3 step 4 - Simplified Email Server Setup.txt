@@ -1,0 +1,117 @@
+Phase 3, Step 5: Simplified E-mail Server Setup
+Setting up a full-fledged, internet-facing email server with all security features is notoriously complex. For a homelab focused on SOC analysis, we just need something that generates mail logs and allows for basic internal communication within your domain. We'll set up a simple SMTP (Postfix) and IMAP (Dovecot) server on your existing Ubuntu_Server_Base VM.
+
+This setup will allow users within your homelab.local domain to send emails to each other, generating logs that a SOC analyst would typically review for things like phishing attempts, spam, or unusual mail flow.
+
+A. Install Postfix (Mail Transfer Agent - MTA)
+Postfix handles sending and receiving email.
+
+Log in to your Ubuntu_Server_Base VM.
+
+Update your system:
+
+Bash
+
+sudo apt update
+sudo apt upgrade -y
+Install Postfix:
+
+Bash
+
+sudo apt install postfix -y
+During installation, you'll see a blue configuration screen:
+General type of mail configuration: Choose Internet Site.
+System mail name: Enter your domain name, e.g., homelab.local. This tells Postfix what domain it's responsible for.
+Root and postmaster mail recipient: Leave blank or use your Ubuntu username.
+Other destinations for mail accepted by this host: homelab.local, localhost.localdomain, localhost (add your domain name if not already there).
+Force synchronous updates on mail queue: No
+Local networks: 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 192.168.1.0/24 (Make sure 192.168.1.0/24 is included so your internal network can relay mail).
+Mailbox size limit (bytes): 0 (for no limit).
+Local policy for recipients: all
+Internet protocols to use: all
+Verify Postfix status:
+
+Bash
+
+sudo systemctl status postfix
+It should show active (running).
+
+B. Install Dovecot (IMAP/POP3 Server)
+Dovecot allows users to retrieve their email from the server using clients like Outlook or Thunderbird.
+
+Install Dovecot:
+Bash
+
+sudo apt install dovecot-imapd dovecot-pop3d -y
+Verify Dovecot status:
+Bash
+
+sudo systemctl status dovecot
+It should show active (running).
+C. Create Mail Users (Linux System Users)
+For this simple setup, Postfix and Dovecot rely on standard Linux system users to have mailboxes. You'll create a few users on your Ubuntu_Server_Base VM that can send and receive mail.
+
+Create a test user:
+Bash
+
+sudo adduser testuser1
+sudo adduser testuser2
+Follow the prompts to set passwords and user info for testuser1 and testuser2.
+D. Configure Mail Clients (on your Win11_Client VM)
+To test the mail server, you'll need a mail client on your domain-joined Windows 11 VM. We can use Thunderbird.
+
+Log in to your Win11_Client VM.
+
+Download and Install Thunderbird:
+
+Open your web browser (Edge/Chrome).
+Go to https://www.thunderbird.net/en-US/ and download the installer.
+Run the installer and install Thunderbird.
+Configure Thunderbird for testuser1@homelab.local:
+
+Launch Thunderbird.
+When prompted, choose "Skip integration" if you just want to set up an account.
+For the "Set up your existing email address" prompt:
+Your name: Test User 1
+Email address: testuser1@homelab.local
+Password: The password you set for testuser1 on the Ubuntu server.
+Click "Continue".
+Thunderbird will try to auto-configure. It will likely fail. Click "Configure manually".
+Manual Settings:
+Incoming:
+Protocol: IMAP
+Server hostname: 192.168.1.x (the IP address of your Ubuntu_Server_Base VM on the Homelab_Internal network, e.g., 192.168.1.101 if you assign a static IP to it or found it via ip a)
+Port: 143 (for IMAP, or 993 for IMAPS - we're not doing SSL for simplicity)
+Connection security: None
+Authentication method: Normal password
+Outgoing:
+Protocol: SMTP
+Server hostname: 192.168.1.x (same IP as above)
+Port: 25 (for SMTP, or 587 for submission with STARTTLS, not doing for simplicity)
+Connection security: None
+Authentication method: Normal password
+Click "Done". If it asks about accepting an unencrypted connection, accept it.
+Repeat for testuser2@homelab.local: Configure another account in Thunderbird for testuser2 following the same steps.
+
+E. Test Internal Mail Flow
+From testuser1's account in Thunderbird, compose a new email to testuser2@homelab.local.
+Send the email.
+Switch to testuser2's account in Thunderbird and check the inbox. You should receive the email.
+Send a reply from testuser2 to testuser1.
+This confirms your mail server is processing internal mail!
+
+F. Locate Mail Server Logs
+Mail logs are a rich source of information for SOC analysts, showing who is sending/receiving, from where, and any errors or spam detections.
+
+On your Ubuntu_Server_Base VM:
+Most mail logs are written to the system's general log file:
+Bash
+
+sudo less /var/log/mail.log
+(Press q to quit less).
+You can also often find them in syslog or auth.log depending on the activity:
+Bash
+
+sudo less /var/log/syslog
+sudo less /var/log/auth.log
+Look for entries from postfix/smtp, postfix/submission, dovecot, etc., that show your test emails.
